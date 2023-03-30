@@ -1,0 +1,15 @@
+[package]
+name = "ttf2fnt"
+version = "0.1.0"
+edition = "2021"
+description = "a ttf to bitmap font tool~"
+authors = ["vker"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+image = "0.24.5"
+fontdue = "0.7.2"
+texture_packer = "0.25.0"
+bmfont_rs = "0.2.0"
+clap = { version = "4.1.13", features = [ "derive" ]}
