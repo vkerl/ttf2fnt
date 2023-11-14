@@ -1,4 +1,5 @@
 use bmfont_rs::{Char, Chnl, Padding, Spacing};
+use fontdue::layout::{Layout, CoordinateSystem, LayoutSettings, TextStyle};
 use image::RgbaImage;
 use texture_packer::{
     exporter::ImageExporter, TexturePacker, TexturePackerConfig, texture::Texture
@@ -48,6 +49,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("txt or txt_path is none");
         }
     }
+
+    println!("font size: {}", font_size);
     
     let txt:&str = &txt.unwrap();
 
@@ -73,6 +76,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     
     for ch in txt.chars() {
+        let merrics = font.metrics(ch, font_size as f32);
+        println!("ch: {}, m: {:?}", ch, merrics);
         let(metrics, bitmap) = font.rasterize(ch, font_size as f32);
         // println!("ch: {} w: {} h: {} len: {}", ch, metrics.width, metrics.height, bitmap.len());
         let mut image_buffer = RgbaImage::new(metrics.width as u32,  metrics.height as u32);
@@ -102,7 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("texture save in {:?}", file);
 
     let mut bm_font = bmfont_rs::Font::default();
-    bm_font.info.face = "艺术字".into();
+    bm_font.info.face = format!("{}", export_font_name);
     bm_font.info.size = font_size as i16;
     bm_font.info.bold = false;
     bm_font.info.italic = false;
@@ -153,9 +158,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         chnl: Chnl::ALL,
     });
 
+    let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
+    let fonts = &[font];
+
     for (name, frame) in packer.get_frames() {
         let metrics = font_map.get(name).unwrap();
-        println!("    'id: {}'-'{}' : {:?} metrics: {:?}", name.clone() as u32, name, frame.frame, metrics);
+        println!("    'id: {}'-'{}' : {:?} metrics: {:?}", name.clone() as u32, name, frame.frame.h, metrics);
+        
+        layout.reset(&LayoutSettings {
+            ..LayoutSettings::default()
+        });
+
+        layout.append(fonts, &TextStyle::new(&format!("{}", name.clone()), font_size as f32, 0));
+
+        println!("layout {:?}\n ==========", layout.glyphs());
+
         bm_font.chars.push(Char{
             id: name.clone().into(),
             x: frame.frame.x as u16,
@@ -163,12 +180,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             width: frame.frame.w as u16,
             height: frame.frame.h as u16,
             xoffset: metrics.xmin as i16,
-            yoffset: (((font_size - frame.frame.h) as i32) - metrics.ymin) as i16,
+            yoffset: layout.glyphs()[0].y as i16,
             xadvance: font_size as i16,
             page: 0,
             chnl: Chnl::ALL,
         });
     }
+
+    bm_font.chars.sort_by(|a, b| a.id.cmp(&b.id));
 
     bmfont_rs::text::to_writer(&mut f_w, &bm_font)?;
     println!("fnt save int {:?}", f_w);
