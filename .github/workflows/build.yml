@@ -1,0 +1,79 @@
+name: Rust-Build
+
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:   
+  build-master-macos:
+    strategy:
+      matrix:
+        os: [aarch64-apple-darwin, x86_64-apple-darwin]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Toolchain info before
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Setup Rust
+        uses: vkerl/setup-rust@v1
+        with:
+          rust-channel: stable
+          targets: ${{ matrix.os }}
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Build-Debug
+        run: |
+          cargo build --target ${{ matrix.os }}
+      - name: Build-Release
+        run: |
+          cargo build -r --target ${{ matrix.os }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'x86_64-apple-darwin' }}
+        with:
+          name: ttf2fnt_x86_64
+          path: target/${{ matrix.os }}/release/ttf2fnt
+      - uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'aarch64-apple-darwin' }}
+        with:
+          name: ttf2fnt_aarch64
+          path: target/${{ matrix.os }}/release/ttf2fnt
+  
+  build-master-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Toolchain info before
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Setup Rust
+        uses: vkerl/setup-rust@v1
+        with:
+          rust-channel: stable
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Build-Debug
+        run: |
+          cargo build
+      - name: Build-Release
+        run: |
+          cargo build -r
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ttf2fnt_windows
+          path: target/release/ttf2fnt.exe
